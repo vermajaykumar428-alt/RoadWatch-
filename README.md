@@ -537,18 +537,67 @@ uvicorn main:app --reload --port 8001
 
 # 🎯 Future Scope
 
-RoadWatch is designed as a scalable civic-tech platform. Planned enhancements include:
+RoadWatch is designed as a scalable civic-tech platform with ambitious planned enhancements organized across multiple categories:
 
-| Feature | Status | ETA |
-|---------|--------|-----|
-| Real-time pothole detection (CV) | 🔄 In Progress | Q3 2026 |
-| Mobile app (React Native) | 📋 Planned | Q4 2026 |
-| Authority-side dashboards | 📋 Planned | Q3 2026 |
-| Predictive maintenance analytics | 📋 Planned | Q4 2026 |
-| GPS + image reporting | 📋 Planned | Q2 2026 |
-| Risk heatmaps & clustering | 📋 Planned | Q3 2026 |
-| Multi-language support | 📋 Planned | Q2 2026 |
-| Large-scale integration | 📋 Planned | 2027 |
+## 🔴 High-Priority Features (Phase 1-2)
+
+| Feature | Category | Priority | ETA | Description |
+|---------|----------|----------|-----|-------------|
+| **Crowdsourced Pothole Reporting** | Reporting | 🔴 Critical | Q2 2026 | Citizens report potholes with photo upload and GPS tagging; AI validates submissions |
+| **GPS + Image Reporting** | Reporting | 🔴 Critical | Q2 2026 | Location-tagged photo uploads with map markers and metadata extraction |
+| **WhatsApp Bot Integration** | Accessibility | 🔴 Critical | Q3 2026 | File complaints via WhatsApp without app installation for accessibility |
+| **Real-time Pothole Detection** | Computer Vision | 🟠 High | Q3 2026 | CV model to detect potholes from road images automatically |
+| **Multi-language Support** | Accessibility | 🟠 High | Q2 2026 | Support for regional languages to reach broader audience |
+
+## 🟠 Medium-Priority Features (Phase 2-3)
+
+| Feature | Category | Priority | ETA | Description |
+|---------|----------|----------|-----|-------------|
+| **Predictive Maintenance Analytics** | ML/Analytics | 🟠 High | Q4 2026 | ML model predicts road deterioration based on historical patterns |
+| **Mobile App (React Native)** | Platform | 🟠 High | Q4 2026 | Native iOS/Android app for better performance and offline support |
+| **Authority-side Dashboards** | Government | 🟠 High | Q3 2026 | Portal for road authorities to manage complaints and track repairs |
+| **Contractor Performance Scoring** | Accountability | 🟠 High | Q3 2026 | Gamified leaderboard tracking contractor performance metrics |
+| **Risk Heatmaps & Clustering** | Visualization | 🟠 High | Q3 2026 | Visual hotspots for accident-prone and hazard-dense areas |
+
+## 🟡 Medium-Priority Features (Phase 3-4)
+
+| Feature | Category | Priority | ETA | Description |
+|---------|----------|----------|-----|-------------|
+| **RTI (Right to Information) Integration** | Governance | 🟡 Medium | Q4 2026 | Automated government data requests using RTI framework |
+| **Real-time IoT Sensor Data** | Monitoring | 🟡 Medium | 2027 | Integrate IoT sensors from vehicles for real-time road condition monitoring |
+| **Computer Vision Validation** | AI/Validation | 🟡 Medium | Q4 2026 | AI-powered validation of citizen-reported hazards |
+| **Large-scale Civic Integration** | Integration | 🟡 Medium | 2027 | Expand to other civic issues (potholes → traffic, pollution, etc.) |
+
+## 🟢 Future Enhancements (Phase 4+)
+
+| Feature | Category | Priority | ETA | Description |
+|---------|----------|----------|-----|-------------|
+| **Blockchain Complaint Tracking** | Trust | 🟢 Future | 2027 | Immutable complaint history for transparency |
+| **Satellite Imagery Analysis** | Monitoring | 🟢 Future | 2027 | Automated pothole detection from satellite/aerial imagery |
+| **Budget Allocation AI** | Policy | 🟢 Future | 2027 | Smart recommendations for maintenance budget allocation |
+| **Social Impact Dashboard** | Impact | 🟢 Future | 2027 | Metrics showing lives saved, accidents prevented, time saved |
+
+---
+
+### Key Strategic Features Explanation
+
+#### 📸 **Crowdsourced Pothole Reporting**
+Citizens can photograph and report potholes with automatic GPS tagging. The system uses computer vision to validate submissions and aggregate duplicate reports.
+
+#### 🤖 **Predictive Maintenance Analytics**
+ML models analyze historical maintenance records, weather patterns, and traffic data to predict which roads are likely to deteriorate soon.
+
+#### 💬 **WhatsApp Bot Integration**
+For users without smartphones/app access, a WhatsApp bot allows filing complaints via simple text messages—critical for rural accessibility.
+
+#### 🏆 **Contractor Performance Scoring**
+Transparent leaderboard tracking contractor performance metrics (response time, quality, cost efficiency) to incentivize accountability.
+
+#### 🛰️ **Real-time IoT Monitoring**
+Aggregate data from vehicles with onboard sensors to get real-time road condition telemetry without additional infrastructure.
+
+#### 📋 **RTI Integration**
+Automate Right to Information requests to government for specific datasets, creating a feedback loop of data transparency.
 
 ---
 
@@ -573,6 +622,7 @@ Some advanced features are under active development. Use in production at your o
 | **Web (Mobile Browser)** | ✅ Supported | Full touch support |
 | **iOS App** | 📋 Planned | Q4 2026 |
 | **Android App** | 📋 Planned | Q4 2026 |
+| **WhatsApp Bot** | 📋 Planned | Q3 2026 |
 
 ---
 
@@ -585,6 +635,8 @@ RoadWatch is designed with accessibility in mind:
 * ✅ Screen reader compatible
 * ✅ High contrast mode support
 * ✅ Mobile & touch-friendly interface
+* 📋 Multi-language support (planned Q2 2026)
+* 📋 WhatsApp alternative interface (planned Q3 2026)
 
 ---
 
