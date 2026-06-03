@@ -8,10 +8,19 @@ AI-assisted road safety, infrastructure transparency, and smart complaint routin
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Status: Hackathon MVP](https://img.shields.io/badge/Status-Hackathon%20MVP-blue.svg)](https://github.com)
+[![IIT Madras 2025](https://img.shields.io/badge/IIT%20Madras-Road%20Safety%20Hackathon%202025-orange.svg)](https://github.com)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-green.svg)](https://www.python.org/downloads/)
 [![Node.js 16+](https://img.shields.io/badge/Node.js-16%2B-brightgreen.svg)](https://nodejs.org/)
 
 </div>
+
+---
+
+## 📖 Hackathon Submission
+
+**Event:** IIT Madras Road Safety Hackathon 2025  
+**Problem Statement:** 1.2 - Road Infrastructure Transparency & Accountability  
+**Full Documentation:** [📄 PROJECT_DOCUMENT.md](docs/PROJECT_DOCUMENT.md)
 
 ---
 
@@ -43,6 +52,14 @@ Built as a **Hackathon MVP and scalable prototype**, RoadWatch demonstrates how 
 
 # ❗ Problem Statement
 
+**India's Challenge:** Over 6.3 million kilometers of road infrastructure, yet citizens face critical barriers to accountability:
+
+* Fragmented government information across multiple portals
+* No unified, location-based access to road project data
+* Difficulty identifying correct authorities for complaints
+* Lack of transparent contractor performance tracking
+* Low visibility into maintenance budgets and spending
+
 Road infrastructure complaints frequently suffer from:
 
 * Delayed reporting
@@ -52,9 +69,9 @@ Road infrastructure complaints frequently suffer from:
 * Poor public visibility into maintenance spending
 * Difficulty identifying responsible authorities
 
-Citizens often struggle to determine where complaints should be directed, while road-related datasets remain distributed across multiple departments and portals.
+**RoadWatch Solution:** A transparent, AI-powered platform that consolidates government road data into a single searchable interface with automated complaint routing.
 
-RoadWatch aims to simplify and modernize this process.
+For detailed problem analysis, see [📄 PROJECT_DOCUMENT.md](docs/PROJECT_DOCUMENT.md#problem-statement)
 
 ---
 
@@ -174,6 +191,8 @@ RoadWatch follows a layered and API-first architecture.
      └───────────┘   └─────────────┘
 ```
 
+For detailed architecture documentation, see [📄 PROJECT_DOCUMENT.md](docs/PROJECT_DOCUMENT.md#system-architecture)
+
 ---
 
 # 🛠️ Tech Stack
@@ -232,6 +251,7 @@ RoadWatch/
 │   └── services/
 │
 ├── docs/
+│   ├── PROJECT_DOCUMENT.md  (Hackathon Submission)
 │   ├── architecture.md
 │   ├── api-endpoints.md
 │   └── deployment.md
@@ -642,7 +662,7 @@ RoadWatch is designed with accessibility in mind:
 
 # 👥 Team & Contributions
 
-RoadWatch was developed through collaborative contributions across frontend, backend, AI, and system design.
+RoadWatch was developed through collaborative contributions across frontend, backend, AI, and system design for the **IIT Madras Road Safety Hackathon 2025**.
 
 | Member      | Role                 | Key Contributions                                                                                                                            |
 | ----------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -699,6 +719,7 @@ MIT License allows:
 
 * **Issues & Bug Reports:** [GitHub Issues](https://github.com/vermajaykumar428-alt/RoadWatch-/issues)
 * **Discussions:** [GitHub Discussions](https://github.com/vermajaykumar428-alt/RoadWatch-/discussions)
+* **Hackathon:** IIT Madras Road Safety Hackathon 2025
 * **Email:** (add team email)
 * **Twitter/X:** (add team social)
 
@@ -706,10 +727,11 @@ MIT License allows:
 
 # 🙏 Acknowledgments
 
-* Government data sources: data.gov.in, PMGSY
+* Government data sources: data.gov.in, PMGSY, MoRTH
 * Mapping: Leaflet.js, OpenStreetMap
 * AI: Google Gemini API
 * Built with: React, FastAPI, Python
+* **Hackathon:** IIT Madras Road Safety Hackathon 2025
 
 ---
 
