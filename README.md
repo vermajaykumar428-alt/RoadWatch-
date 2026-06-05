@@ -36,6 +36,77 @@ RoadWatch is a hackathon MVP for road safety transparency and complaint routing.
 ### 1. Backend
 
 ```bash
+# 1. Clone repository
+git clone https://github.com/vermajaykumar428-alt/RoadWatch-.git
+cd RoadWatch-
+
+# 2. Setup environment variables (docker-compose reads .env)
+cp .env.example .env
+
+# 3. Run with Docker (recommended)
+docker-compose up
+```
+
+Or see **Manual Setup** below for step-by-step instructions.
+
+---
+
+# 🚀 Getting Started
+
+## Prerequisites
+
+Install the following:
+
+| Tool | Version | Link |
+|------|---------|------|
+| **Node.js** | 16+ (18 LTS recommended) | [nodejs.org](https://nodejs.org/) |
+| **Python** | 3.11+ | [python.org](https://www.python.org/downloads/) |
+| **Docker** (optional) | Latest | [docker.com](https://www.docker.com/) |
+| **Git** | Latest | [git-scm.com](https://git-scm.com/) |
+
+**API Keys Required:**
+
+* [Google Gemini API Key](https://makersuite.google.com/app/apikey)
+* Firebase credentials (optional)
+
+---
+
+## 1. Clone Repository
+
+```bash
+git clone https://github.com/vermajaykumar428-alt/RoadWatch-.git
+cd RoadWatch-
+```
+
+---
+
+## 2. Environment Configuration
+
+Copy the example environment file:
+
+```bash
+cp .env.example .env.local
+```
+
+### Frontend Setup (`.env.local`)
+
+```env
+# Core AI Configuration
+VITE_GEMINI_API_KEY=your_google_gemini_api_key_here
+
+# Backend API URL
+VITE_API_URL=http://localhost:8000
+
+# Firebase Configuration (Optional)
+VITE_FIREBASE_API_KEY=your_api_key_here
+VITE_FIREBASE_AUTH_DOMAIN=your_auth_domain_here
+VITE_FIREBASE_PROJECT_ID=your_project_id_here
+VITE_FIREBASE_STORAGE_BUCKET=your_storage_bucket_here
+```
+
+---
+
+## 3. Frontend Setup
 cd backend
 python -m venv .venv
 .venv\Scripts\activate
@@ -65,6 +136,41 @@ Frontend URL: http://localhost:5173
 On Windows PowerShell with script execution restrictions, use `npm.cmd`:
 
 ```bash
+cd backend
+pip install -r requirements.txt
+uvicorn main:app --reload
+```
+
+Backend API will be available at: **http://localhost:8000**
+- **Swagger UI:** http://localhost:8000/docs
+- **ReDoc:** http://localhost:8000/redoc
+
+---
+
+## 5. Database Initialization (optional)
+
+> **Note:** The MVP runs without any database setup — the backend serves bundled
+> sample road data, so you can skip this section. The `scripts/` helpers below are
+> planned and not yet included in the repository.
+
+Initialize SQLite database with government data:
+
+```bash
+cd backend
+python scripts/init_db.py
+python scripts/load_pmgsy_data.py
+```
+
+---
+
+# 📡 API Documentation
+
+RoadWatch backend provides a REST API with interactive documentation.
+
+### Accessing API Docs
+
+- **Swagger UI (Interactive):** `http://localhost:8000/docs`
+- **ReDoc (ReadOnly):** `http://localhost:8000/redoc`
 npm.cmd run dev
 ```
 
