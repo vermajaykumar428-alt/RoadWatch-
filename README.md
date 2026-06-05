@@ -271,10 +271,10 @@ Get RoadWatch running in 3 steps:
 ```bash
 # 1. Clone repository
 git clone https://github.com/vermajaykumar428-alt/RoadWatch-.git
-cd RoadWatch
+cd RoadWatch-
 
-# 2. Setup environment variables
-cp .env.example .env.local
+# 2. Setup environment variables (docker-compose reads .env)
+cp .env.example .env
 
 # 3. Run with Docker (recommended)
 docker-compose up
@@ -308,7 +308,7 @@ Install the following:
 
 ```bash
 git clone https://github.com/vermajaykumar428-alt/RoadWatch-.git
-cd RoadWatch
+cd RoadWatch-
 ```
 
 ---
@@ -367,7 +367,11 @@ Backend API will be available at: **http://localhost:8000**
 
 ---
 
-## 5. Database Initialization
+## 5. Database Initialization (optional)
+
+> **Note:** The MVP runs without any database setup — the backend serves bundled
+> sample road data, so you can skip this section. The `scripts/` helpers below are
+> planned and not yet included in the repository.
 
 Initialize SQLite database with government data:
 
