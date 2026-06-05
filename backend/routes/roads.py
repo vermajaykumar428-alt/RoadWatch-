@@ -1,7 +1,6 @@
 import os
 
-import requests
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
 from models import ChatRequest, ChatResponse, ComplaintRouteRequest, ComplaintRouteResponse, RoadSearchResponse
 from services.data_adapter import RoadDataAdapter
@@ -21,9 +20,13 @@ def search_roads(query: str = ""):
             road
             for road in roads
             if query_lower in road["road"].lower()
+            or query_lower in road["name"].lower()
             or query_lower in road["district"].lower()
+            or query_lower in road["state"].lower()
             or query_lower in road["type"].lower()
             or query_lower in road["status"].lower()
+            or query_lower in road["hazard_type"].lower()
+            or query_lower in road["authority"].lower()
         ]
 
     return {"query": query or "all demo roads", "total": len(roads), "results": roads}
@@ -60,41 +63,42 @@ def route_complaint(payload: ComplaintRouteRequest):
 @router.post("/chat", response_model=ChatResponse)
 def chat(payload: ChatRequest):
     api_key = os.getenv("GEMINI_API_KEY")
+    fallback = _fallback_reply(payload.message, payload.road_name, payload.district)
 
     if not api_key:
-        raise HTTPException(
-            status_code=503,
-            detail="Gemini is required for the RoadWatch AI demo. Set GEMINI_API_KEY in backend/.env and restart the API.",
-        )
-
-    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
-    context = [
-        "You are RoadWatch AI, a concise civic-tech assistant for Indian road safety and infrastructure transparency.",
-        "Help users understand road authority routing, complaint drafting, inspection evidence, and budget accountability.",
-        "Do not invent official IDs, phone numbers, or live government records. Ask for missing road/location details when needed.",
-    ]
-    if payload.road_name:
-        context.append(f"Road context: {payload.road_name}.")
-    if payload.district:
-        context.append(f"District context: {payload.district}.")
-
-    body = {
-        "contents": [
-            {
-                "role": "user",
-                "parts": [{"text": "\n".join(context) + f"\n\nUser asks: {payload.message}"}],
-            }
-        ]
-    }
+        return {"reply": fallback, "source": "fallback"}
 
     try:
-        response = requests.post(url, headers={"x-goog-api-key": api_key}, json=body, timeout=60)
-        response.raise_for_status()
-        data = response.json()
-        reply = data["candidates"][0]["content"]["parts"][0].get("text", "I could not generate a response.")
+        import google.generativeai as genai
+
+        context = [
+            "You are RoadWatch AI, a concise civic-tech assistant for Indian road safety and infrastructure transparency.",
+            "Help users understand road authority routing, complaint drafting, inspection evidence, and budget accountability.",
+            "Do not invent official IDs, phone numbers, or live government records. Ask for missing road/location details when needed.",
+        ]
+        if payload.road_name:
+            context.append(f"Road context: {payload.road_name}.")
+        if payload.district:
+            context.append(f"District context: {payload.district}.")
+
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        response = model.generate_content("\n".join(context) + f"\n\nUser asks: {payload.message}")
+        reply = response.text or fallback
         return {"reply": reply, "source": "gemini"}
-    except requests.HTTPError as exc:
-        status_code = exc.response.status_code if exc.response is not None else "unknown"
-        raise HTTPException(status_code=502, detail=f"Gemini request failed with provider status {status_code}.") from exc
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail="Gemini request failed before a valid response was returned.") from exc
+    except Exception:
+        return {"reply": fallback, "source": "fallback"}
+
+
+def _fallback_reply(message: str, road_name: str | None = None, district: str | None = None) -> str:
+    road_label = road_name or "the reported road"
+    district_label = district or "the relevant district"
+    return (
+        "RoadWatch AI fallback draft\n\n"
+        f"To: NHAI / State PWD / local road authority for {district_label}\n"
+        f"Subject: Urgent inspection requested for {road_label}\n\n"
+        f"Citizen request: {message}\n\n"
+        "Please inspect the location, log the hazard with geotagged photos, confirm the responsible contractor, "
+        "and share a repair timeline. If this is an NH segment, route it to NHAI or the MoRTH regional office. "
+        "For SH or city roads, route it to the State PWD division or municipal engineering office."
+    )

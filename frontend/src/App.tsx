@@ -1,16 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import L from 'leaflet';
-import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
-import markerIcon from 'leaflet/dist/images/marker-icon.png';
-import markerShadow from 'leaflet/dist/images/marker-shadow.png';
-import { AlertTriangle, Bot, CheckCircle2, CircleDot, Loader2, MapPin, Route, Search, ShieldCheck } from 'lucide-react';
-import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
-
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: markerIcon2x,
-  iconUrl: markerIcon,
-  shadowUrl: markerShadow,
-});
+import { useCallback, useEffect, useState } from 'react';
+import { AlertTriangle, Bot, CheckCircle2, Loader2, MapPin, Route, Search, ShieldCheck } from 'lucide-react';
+import { CircleMarker, MapContainer, Popup, TileLayer, useMap } from 'react-leaflet';
 
 type ReadinessCheck = {
   name: string;
@@ -27,16 +17,25 @@ type HealthResponse = {
 };
 
 type RoadRecord = {
+  id: number;
   road: string;
+  name: string;
   type: string;
   district: string;
+  state: string;
   status: string;
   risk: string;
+  severity: 'high' | 'medium' | 'low';
   lat: number;
   lng: number;
   contractor: string;
   budget_sanctioned: string;
   budget_spent: string;
+  budget_allocated: number;
+  budget_spent_amount: number;
+  hazard_type: string;
+  complaints: number;
+  authority: string;
   last_repair: string;
   next_review: string;
   source_url: string;
@@ -64,7 +63,17 @@ type ChatResponse = {
   source: string;
 };
 
-const DEFAULT_CENTER: [number, number] = [12.9, 79.7];
+type StatsResponse = {
+  hazards_reported: number;
+  complaints_routed: number;
+  resolved_percentage: number;
+  accident_prone_zones: number;
+};
+
+const DEFAULT_CENTER: [number, number] = [15.3173, 78.4772];
+
+const severityColor = (severity: string) =>
+  ({ high: '#c44536', medium: '#f2a541', low: '#2a9d68' })[severity] || '#607080';
 
 function RecenterMap({ road }: { road: RoadRecord | null }) {
   const map = useMap();
@@ -87,6 +96,7 @@ export default function App() {
   const [selectedRoad, setSelectedRoad] = useState<RoadRecord | null>(null);
   const [roadsLoading, setRoadsLoading] = useState(true);
   const [roadsError, setRoadsError] = useState('');
+  const [stats, setStats] = useState<StatsResponse | null>(null);
   const [routeResult, setRouteResult] = useState<ComplaintRouteResponse | null>(null);
   const [routeLoading, setRouteLoading] = useState(false);
   const [routeError, setRouteError] = useState('');
@@ -94,27 +104,27 @@ export default function App() {
   const [chatReply, setChatReply] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
   const [chatError, setChatError] = useState('');
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
 
-const [hazardResult, setHazardResult] = useState({
-  hazard: 'Pothole',
-  confidence: '92%',
-  priority: 'High',
-  authority: 'NHAI',
-});
-
-const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const loadHealth = useCallback(async () => {
     try {
       setHealthError('');
       const response = await fetch(`${apiBase}/health`);
-      if (!response.ok) {
-        throw new Error(`Health check failed with ${response.status}`);
-      }
-      const data = (await response.json()) as HealthResponse;
-      setHealth(data);
+      if (!response.ok) throw new Error(`Health check failed with ${response.status}`);
+      setHealth((await response.json()) as HealthResponse);
     } catch (error) {
       setHealth(null);
       setHealthError(error instanceof Error ? error.message : 'Backend is not reachable.');
+    }
+  }, [apiBase]);
+
+  const loadStats = useCallback(async () => {
+    try {
+      const response = await fetch(`${apiBase}/stats`);
+      if (!response.ok) throw new Error(`Stats failed with ${response.status}`);
+      setStats((await response.json()) as StatsResponse);
+    } catch {
+      setStats(null);
     }
   }, [apiBase]);
 
@@ -124,16 +134,12 @@ const [selectedImage, setSelectedImage] = useState<File | null>(null);
         setRoadsLoading(true);
         setRoadsError('');
         const params = new URLSearchParams();
-        if (searchQuery.trim()) {
-          params.set('query', searchQuery.trim());
-        }
+        if (searchQuery.trim()) params.set('query', searchQuery.trim());
         const response = await fetch(`${apiBase}/api/roads/search?${params.toString()}`);
-        if (!response.ok) {
-          throw new Error(`Road search failed with ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`Road search failed with ${response.status}`);
         const data = (await response.json()) as RoadSearchResponse;
         setRoads(data.results);
-        setSelectedRoad((current) => data.results.find((road) => road.road === current?.road) || data.results[0] || null);
+        setSelectedRoad((current) => data.results.find((road) => road.id === current?.id) || data.results[0] || null);
       } catch (error) {
         setRoads([]);
         setSelectedRoad(null);
@@ -147,25 +153,17 @@ const [selectedImage, setSelectedImage] = useState<File | null>(null);
 
   useEffect(() => {
     void loadHealth();
+    void loadStats();
     void searchRoads('');
-  }, [loadHealth, searchRoads]);
+  }, [loadHealth, loadStats, searchRoads]);
 
   useEffect(() => {
     setRouteResult(null);
     setRouteError('');
-  }, [selectedRoad?.road]);
-
-  const metrics = useMemo(() => {
-    const highRisk = roads.filter((road) => road.risk.toLowerCase() === 'high').length;
-    const sanctionedTotal = roads.length;
-    const districts = new Set(roads.map((road) => road.district)).size;
-    return { highRisk, sanctionedTotal, districts };
-  }, [roads]);
+  }, [selectedRoad?.id]);
 
   const routeComplaint = async () => {
-    if (!selectedRoad) {
-      return;
-    }
+    if (!selectedRoad) return;
 
     try {
       setRouteLoading(true);
@@ -181,9 +179,7 @@ const [selectedImage, setSelectedImage] = useState<File | null>(null);
         }),
       });
       const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.detail || `Routing failed with ${response.status}`);
-      }
+      if (!response.ok) throw new Error(data.detail || `Routing failed with ${response.status}`);
       setRouteResult(data as ComplaintRouteResponse);
     } catch (error) {
       setRouteResult(null);
@@ -213,9 +209,7 @@ const [selectedImage, setSelectedImage] = useState<File | null>(null);
         }),
       });
       const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.detail || `AI request failed with ${response.status}`);
-      }
+      if (!response.ok) throw new Error(data.detail || `AI request failed with ${response.status}`);
       setChatReply((data as ChatResponse).reply);
     } catch (error) {
       setChatError(error instanceof Error ? error.message : 'RoadWatch AI could not respond.');
@@ -224,7 +218,7 @@ const [selectedImage, setSelectedImage] = useState<File | null>(null);
     }
   };
 
-  const healthReady = health?.status === 'ready';
+  const healthReady = Boolean(health && !healthError);
 
   return (
     <main className="app-shell">
@@ -235,26 +229,26 @@ const [selectedImage, setSelectedImage] = useState<File | null>(null);
         </div>
         <div className={`readiness-pill ${healthReady ? 'ready' : 'warning'}`}>
           {healthReady ? <CheckCircle2 size={18} /> : <AlertTriangle size={18} />}
-          <span>{healthReady ? 'Demo ready' : 'Setup needed'}</span>
+          <span>{health?.gemini_configured ? 'Gemini ready' : healthReady ? 'Fallback ready' : 'Setup needed'}</span>
         </div>
       </header>
 
       <section className="metric-grid" aria-label="RoadWatch demo metrics">
         <div className="metric-card">
-          <span>Roads loaded</span>
-          <strong>{roadsLoading ? '-' : metrics.sanctionedTotal}</strong>
+          <span>Hazards reported</span>
+          <strong>{stats ? stats.hazards_reported.toLocaleString() : '-'}</strong>
         </div>
         <div className="metric-card danger">
-          <span>High-risk routes</span>
-          <strong>{roadsLoading ? '-' : metrics.highRisk}</strong>
+          <span>Complaints routed</span>
+          <strong>{stats ? stats.complaints_routed.toLocaleString() : '-'}</strong>
         </div>
-        <div className="metric-card">
-          <span>Districts covered</span>
-          <strong>{roadsLoading ? '-' : metrics.districts}</strong>
+        <div className="metric-card resolved">
+          <span>Resolved cases</span>
+          <strong>{stats ? `${stats.resolved_percentage}%` : '-'}</strong>
         </div>
         <div className="metric-card ai">
-          <span>Gemini status</span>
-          <strong>{health?.gemini_configured ? 'Ready' : 'Required'}</strong>
+          <span>Accident-prone zones</span>
+          <strong>{stats ? stats.accident_prone_zones.toLocaleString() : '-'}</strong>
         </div>
       </section>
 
@@ -291,28 +285,49 @@ const [selectedImage, setSelectedImage] = useState<File | null>(null);
             <RecenterMap road={selectedRoad} />
             <TileLayer attribution='&copy; OpenStreetMap contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
             {roads.map((road) => (
-              <Marker key={road.road} position={[road.lat, road.lng]} eventHandlers={{ click: () => setSelectedRoad(road) }}>
+              <CircleMarker
+                center={[road.lat, road.lng]}
+                eventHandlers={{ click: () => setSelectedRoad(road) }}
+                key={road.id}
+                pathOptions={{
+                  color: severityColor(road.severity),
+                  fillColor: severityColor(road.severity),
+                  fillOpacity: 0.78,
+                  weight: 2,
+                }}
+                radius={road.severity === 'high' ? 14 : 9}
+              >
                 <Popup>
-                  <strong>{road.road}</strong>
+                  <strong>{road.name}</strong>
                   <br />
-                  {road.district} | {road.status}
+                  {road.district}, {road.state}
+                  <br />
+                  {road.hazard_type} | {road.status}
+                  <br />
+                  {road.complaints} complaints | {road.authority}
                 </Popup>
-              </Marker>
+              </CircleMarker>
             ))}
           </MapContainer>
+          <div className="map-legend">
+            <span>
+              <span className="legend-dot high" /> High risk
+            </span>
+            <span>
+              <span className="legend-dot medium" /> Medium risk
+            </span>
+            <span>{roads.length} hotspots loaded</span>
+          </div>
 
           <div className="road-list" aria-label="Road search results">
             {roads.map((road) => (
-              <button
-                className={`road-row ${selectedRoad?.road === road.road ? 'selected' : ''}`}
-                key={road.road}
-                onClick={() => setSelectedRoad(road)}
-                type="button"
-              >
+              <button className={`road-row ${selectedRoad?.id === road.id ? 'selected' : ''}`} key={road.id} onClick={() => setSelectedRoad(road)} type="button">
                 <span className={`risk-dot ${road.risk.toLowerCase()}`} />
                 <span>
                   <strong>{road.road}</strong>
-                  <small>{road.district} | {road.status}</small>
+                  <small>
+                    {road.district}, {road.state} | {road.status}
+                  </small>
                 </span>
                 <span className="road-type">{road.type}</span>
               </button>
@@ -347,6 +362,14 @@ const [selectedImage, setSelectedImage] = useState<File | null>(null);
                     </dd>
                   </div>
                   <div>
+                    <dt>Hazard</dt>
+                    <dd>{selectedRoad.hazard_type}</dd>
+                  </div>
+                  <div>
+                    <dt>Complaints</dt>
+                    <dd>{selectedRoad.complaints}</dd>
+                  </div>
+                  <div>
                     <dt>Last repair</dt>
                     <dd>{selectedRoad.last_repair}</dd>
                   </div>
@@ -355,6 +378,10 @@ const [selectedImage, setSelectedImage] = useState<File | null>(null);
                     <dd>{selectedRoad.next_review}</dd>
                   </div>
                 </dl>
+                <p className="routing-reasons">
+                  <strong>Responsible authority</strong>
+                  {selectedRoad.authority}
+                </p>
                 <p className="issue-summary">{selectedRoad.issue_summary}</p>
                 <a className="source-link" href={selectedRoad.source_url} target="_blank" rel="noreferrer">
                   Open source portal
@@ -396,46 +423,69 @@ const [selectedImage, setSelectedImage] = useState<File | null>(null);
               <Bot size={18} />
               <h2>Gemini assistant</h2>
             </div>
-                    <textarea value={chatInput} onChange={(event) => setChatInput(event.target.value)} rows={4} />
+            <textarea value={chatInput} onChange={(event) => setChatInput(event.target.value)} rows={4} />
             <button className="primary-action" disabled={chatLoading} onClick={askAssistant} type="button">
               {chatLoading ? <Loader2 className="spin" size={17} /> : <Bot size={17} />}
               Ask RoadWatch AI
             </button>
             {chatError && <div className="alert error">{chatError}</div>}
-            {chatReply && <p className="chat-reply">{chatReply}</p>}
+            {chatReply && (
+              <div className="chat-reply">
+                {!health?.gemini_configured && <span className="demo-mode-label">Gemini key not set. Showing the built-in RoadWatch draft.</span>}
+                <p>{chatReply}</p>
+              </div>
+            )}
           </section>
-
-          {/* PASTE HERE*/}
 
           <section className="info-panel">
             <div className="panel-heading">
               <AlertTriangle size={18} />
               <h2>AI hazard detection</h2>
             </div>
-
             <input
-              type="file"
               accept="image/*"
               onChange={(event) => {
-                if (e.target.files?.[0]) {
-
-   setSelectedImage(e.target.files[0])
-  ;
-                }
-               }}
-              />  
-
-              {selectedImage && (
-                <div className="result-box">
-                  <p><strong>Hazard:</strong> 
-  {hazardResult.hazard}</p>
-                  <p><strong>Confidence:</strong> {hazardResult.confidence}</p>
-                  <p><strong>Priority:</strong> {hazardResult.priority}</p>
-                  <p><strong>Authority:</strong> {hazardResult.authority}</p>
-
-                </div>
-              )}
+                if (event.target.files?.[0]) setSelectedImage(event.target.files[0]);
+              }}
+              type="file"
+            />
+            {selectedImage && (
+              <div className="result-box hazard-result">
+                <img className="hazard-preview" src={URL.createObjectURL(selectedImage)} alt="Road hazard preview" />
+                <p>
+                  <strong>Hazard:</strong> Pothole
+                </p>
+                <p>
+                  <strong>Confidence:</strong> 92%
+                </p>
+                <p>
+                  <strong>Priority:</strong> High
+                </p>
+                <p>
+                  <strong>Authority:</strong> {selectedRoad?.authority || 'NHAI'}
+                </p>
+              </div>
+            )}
           </section>
 
-<section className="info-panel"> 
-  </section>         
+          <section className="info-panel">
+            <div className="panel-heading">
+              <CheckCircle2 size={18} />
+              <h2>Demo readiness</h2>
+            </div>
+            {healthError && <div className="alert error">{healthError}</div>}
+            {health?.checks?.map((check) => (
+              <div className="check-row" key={check.name}>
+                <span className={`check-dot ${check.status === 'ok' ? 'ok' : 'missing'}`} />
+                <span>
+                  <strong>{check.name}</strong>
+                  <small>{check.detail}</small>
+                </span>
+              </div>
+            ))}
+          </section>
+        </aside>
+      </section>
+    </main>
+  );
+}

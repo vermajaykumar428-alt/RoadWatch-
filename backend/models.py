@@ -16,16 +16,25 @@ class HealthResponse(BaseModel):
 
 
 class RoadRecord(BaseModel):
+    id: int
     road: str
+    name: str
     type: str
     district: str
+    state: str
     status: str
     risk: str
+    severity: str
     lat: float
     lng: float
     contractor: str
     budget_sanctioned: str
     budget_spent: str
+    budget_allocated: int
+    budget_spent_amount: int
+    hazard_type: str
+    complaints: int
+    authority: str
     last_repair: str
     next_review: str
     source_url: str
