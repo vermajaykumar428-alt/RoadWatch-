@@ -1,69 +1,100 @@
 import os
 
 import requests
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
+from models import ChatRequest, ChatResponse, ComplaintRouteRequest, ComplaintRouteResponse, RoadSearchResponse
+from services.data_adapter import RoadDataAdapter
 from services.routing_engine import classify_authority
 
 router = APIRouter(prefix="/api", tags=["roads"])
+road_adapter = RoadDataAdapter()
 
 
-@router.get("/roads/search")
+@router.get("/roads/search", response_model=RoadSearchResponse)
 def search_roads(query: str = ""):
-    sample_roads = [
-        {"road": "NH-44", "type": "NH", "district": "Chennai", "status": "Moderate"},
-        {"road": "SH-17", "type": "SH", "district": "Kanchipuram", "status": "Needs Review"},
-        {"road": "MDR-4", "type": "MDR", "district": "Thiruvallur", "status": "High Risk"},
-    ]
+    roads = road_adapter.load_roads()
 
     if query:
         query_lower = query.lower()
-        sample_roads = [road for road in sample_roads if query_lower in road["road"].lower() or query_lower in road["district"].lower()]
+        roads = [
+            road
+            for road in roads
+            if query_lower in road["road"].lower()
+            or query_lower in road["district"].lower()
+            or query_lower in road["type"].lower()
+            or query_lower in road["status"].lower()
+        ]
 
-    return {"query": query or "nearby road", "results": sample_roads}
+    return {"query": query or "all demo roads", "total": len(roads), "results": roads}
 
 
-@router.post("/complaints/route")
-def route_complaint(payload: dict):
-    road_type = payload.get("road_type", "SH")
-    district = payload.get("district", "")
+@router.post("/complaints/route", response_model=ComplaintRouteResponse)
+def route_complaint(payload: ComplaintRouteRequest):
+    road_type = payload.road_type.upper()
+    district = payload.district
     classification = classify_authority(road_type=road_type, district=district)
+    road_label = payload.road_name or f"{road_type} road"
+    district_label = district or "the specified jurisdiction"
+    issue = payload.issue.strip().rstrip(".") or "Road hazard requiring inspection"
 
     return {
         "road_type": road_type,
         "district": district,
         "authority": classification["authority"],
         "priority": classification["priority"],
-        "draft": f"Request urgent inspection for {road_type} road in {district or 'the specified jurisdiction'} and route it to {classification['authority']}.",
+        "escalation_channel": classification["escalation_channel"],
+        "draft": (
+            f"Request urgent inspection for {road_label} in {district_label}. "
+            f"Issue reported: {issue}. Please route this to {classification['authority']} "
+            f"and share an expected repair timeline."
+        ),
+        "next_steps": [
+            "Attach a geotagged photo and nearest landmark before submission.",
+            f"Send the complaint through {classification['escalation_channel']}.",
+            "Ask for a complaint ID and follow up if no inspection is scheduled within 7 working days.",
+        ],
     }
 
 
-@router.post("/chat")
-def chat(payload: dict):
-    message = payload.get("message", "")
+@router.post("/chat", response_model=ChatResponse)
+def chat(payload: ChatRequest):
     api_key = os.getenv("GEMINI_API_KEY")
 
     if not api_key:
-        return {
-            "reply": "Gemini API key is not configured. Add GEMINI_API_KEY to your backend environment to enable AI responses.",
-            "source": "fallback",
-        }
+        raise HTTPException(
+            status_code=503,
+            detail="Gemini is required for the RoadWatch AI demo. Set GEMINI_API_KEY in backend/.env and restart the API.",
+        )
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+    context = [
+        "You are RoadWatch AI, a concise civic-tech assistant for Indian road safety and infrastructure transparency.",
+        "Help users understand road authority routing, complaint drafting, inspection evidence, and budget accountability.",
+        "Do not invent official IDs, phone numbers, or live government records. Ask for missing road/location details when needed.",
+    ]
+    if payload.road_name:
+        context.append(f"Road context: {payload.road_name}.")
+    if payload.district:
+        context.append(f"District context: {payload.district}.")
+
     body = {
         "contents": [
             {
                 "role": "user",
-                "parts": [{"text": f"You are RoadWatch AI. Help with road safety complaints and infrastructure transparency. User asks: {message}"}],
+                "parts": [{"text": "\n".join(context) + f"\n\nUser asks: {payload.message}"}],
             }
         ]
     }
 
     try:
-        response = requests.post(url, json=body, timeout=60)
+        response = requests.post(url, headers={"x-goog-api-key": api_key}, json=body, timeout=60)
         response.raise_for_status()
         data = response.json()
         reply = data["candidates"][0]["content"]["parts"][0].get("text", "I could not generate a response.")
         return {"reply": reply, "source": "gemini"}
+    except requests.HTTPError as exc:
+        status_code = exc.response.status_code if exc.response is not None else "unknown"
+        raise HTTPException(status_code=502, detail=f"Gemini request failed with provider status {status_code}.") from exc
     except Exception as exc:
-        return {"reply": f"AI request failed: {exc}", "source": "error"}
+        raise HTTPException(status_code=502, detail="Gemini request failed before a valid response was returned.") from exc
