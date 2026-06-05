@@ -212,6 +212,34 @@ cd backend
 python -B -c "from main import app; print(app.title, app.version)"
 ```
 
+## Hackathon Demo Instructions
+
+Start the backend:
+
+```bash
+cd backend
+pip install -r requirements.txt
+uvicorn main:app --reload
+```
+
+Start the frontend:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open the demo at http://localhost:5173 with the API running at http://localhost:8000.
+
+Demo data note: RoadWatch is a scalable platform. This demo uses sample hazard data from Delhi NCR, Chennai, and Bengaluru to demonstrate complaint routing, risk mapping, and infrastructure transparency. Do not present the sample records as real government data.
+
+Complaint test: select one of the sample hazards, click **Route selected road**, and confirm the success message shows the routed authority, tracking ID `RW-2026-001`, and estimated priority.
+
+AI assistant test: leave `GEMINI_API_KEY` unset to verify **AI Assistant Demo Mode**, then ask the assistant a road-safety complaint question and confirm fallback guidance appears.
+
+Judging story: RoadWatch uses AI-assisted hazard reporting, intelligent authority routing, risk mapping, and infrastructure transparency to reduce reporting delays and improve road-safety outcomes.
+
 ## Roadmap
 
 These are intentionally not presented as current functionality:
